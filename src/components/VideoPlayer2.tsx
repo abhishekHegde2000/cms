@@ -26,6 +26,7 @@ interface VideoPlayerProps {
   subtitles?: string;
   contentId: number;
   appxVideoId?: string;
+  appxCourseId?: string;
   onVideoEnd: () => void;
 }
 
@@ -37,21 +38,15 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
   options,
   contentId,
   onReady,
-  subtitles,
   onVideoEnd,
   appxVideoId,
+  appxCourseId,
 }) => {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
   const [player, setPlayer] = useState<any>(null);
   const searchParams = useSearchParams();
   const vidUrl = options.sources[0].src;
-  let href: string | null = null;
-  let courseId: string | null = null;
-  if (typeof window !== 'undefined') {
-    href = window.location.href;
-    courseId = href.split('/')[4];
-  }
 
   const togglePictureInPicture = async () => {
     try {
@@ -100,6 +95,43 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
 
     return pipButtonContainer;
   };
+
+  useEffect(() => {
+    if (!player) return;
+
+    const savedCaptionSetting = localStorage.getItem('captionSetting');
+    const tracks = player.textTracks();
+
+    if (savedCaptionSetting && player) {
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+
+        if (track) {
+          track.mode =
+            savedCaptionSetting === 'showing' ? 'showing' : 'disabled';
+        }
+      }
+    }
+
+    const handleTrackChange = () => {
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+        if (track.kind === 'subtitles' && track.language === 'en') {
+          track.addEventListener('modechange', () => {
+            localStorage.setItem('captionSetting', track.mode);
+          });
+        }
+      }
+    };
+
+    handleTrackChange();
+    return () => {
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+        track.removeEventListener('modechange', handleTrackChange);
+      }
+    };
+  }, [player]);
 
   useEffect(() => {
     const t = searchParams.get('timestamp');
@@ -264,11 +296,8 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
             const track = tracks[i];
 
             if (track.kind === 'subtitles' && track.language === 'en') {
-              if (track.mode === 'hidden') {
-                track.mode = 'showing';
-              } else {
-                track.mode = 'hidden';
-              }
+              if (track.mode === 'disabled') track.mode = 'showing';
+              else track.mode = 'disabled';
             }
           }
           event.stopPropagation();
@@ -327,6 +356,7 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
       document.removeEventListener('keydown', handleKeyPress);
     };
   }, [player]);
+
   useEffect(() => {
     if (!player) {
       return;
@@ -380,16 +410,6 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
     if (!playerRef.current && videoRef.current) {
       const videoElement = document.createElement('video-js');
       videoElement.classList.add('vjs-big-play-centered');
-      if (subtitles) {
-        const subtitlesEl = document.createElement('track');
-        subtitlesEl.setAttribute('kind', 'subtitles');
-
-        subtitlesEl.setAttribute('label', 'English');
-        subtitlesEl.setAttribute('srcLang', 'en');
-        subtitlesEl.setAttribute('src', subtitles);
-
-        videoElement.append(subtitlesEl);
-      }
       videoRef.current.appendChild(videoElement);
       const player: any = (playerRef.current = videojs(
         videoElement,
@@ -482,13 +502,13 @@ export const VideoPlayer: FunctionComponent<VideoPlayerProps> = ({
 
   if (isYoutubeUrl(vidUrl)) return <YoutubeRenderer url={vidUrl} />;
 
-  if (appxVideoId && typeof window !== 'undefined' && courseId)
-    return <AppxVideoPlayer courseId={courseId} videoId={appxVideoId} />;
+  if (appxVideoId && typeof window !== 'undefined' && appxCourseId)
+    return <AppxVideoPlayer courseId={appxCourseId} videoId={appxVideoId} />;
 
   return (
     <div
       data-vjs-player
-      style={{ maxWidth: '850px', margin: '0 auto', width: '100%' }}
+      style={{ maxWidth: '1350px', margin: '0 auto', width: '100%' }}
     >
       <div ref={videoRef} style={{ width: '100%', height: 'auto' }} />
     </div>

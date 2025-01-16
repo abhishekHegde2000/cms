@@ -6,6 +6,7 @@ import prisma from '@/db';
 import { NextAuthOptions } from 'next-auth';
 import { Session } from 'next-auth';
 import { JWT } from 'next-auth/jwt';
+import { randomUUID } from 'crypto';
 
 interface AppxSigninResponse {
   data: {
@@ -43,9 +44,12 @@ const generateJWT = async (payload: JWTPayload) => {
 
   const jwk = await importJWK({ k: secret, alg: 'HS256', kty: 'oct' });
 
-  const jwt = await new SignJWT(payload)
+  const jwt = await new SignJWT({
+    ...payload,
+    iat: Math.floor(Date.now() / 1000),
+    jti: randomUUID(), // Adding a unique jti to ensure each token is unique. This helps generate a unique jwtToken on every login
+  })
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
     .setExpirationTime('365d')
     .sign(jwk);
 
@@ -76,7 +80,7 @@ async function validateUser(
     }
     return { data: null };
   }
-  const url = 'https://harkiratapi.classx.co.in/post/userLogin';
+  const url = `${process.env.APPX_BASE_API}/post/userLogin`;
   const headers = {
     'Client-Service': process.env.APPX_CLIENT_SERVICE || '',
     'Auth-Key': process.env.APPX_AUTH_KEY || '',

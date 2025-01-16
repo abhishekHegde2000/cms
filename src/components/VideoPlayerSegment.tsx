@@ -9,7 +9,7 @@ import Player from 'video.js/dist/types/player';
 
 import { Segment } from '@/lib/utils';
 
-export interface Thumbnail {
+interface Thumbnail {
   public_id: string;
   version: number;
   url: string;
@@ -25,6 +25,7 @@ interface VideoProps {
   videoJsOptions: any;
   contentId: number;
   appxVideoId?: string;
+  appxCourseId?: string;
   onVideoEnd: () => void;
 }
 
@@ -36,6 +37,7 @@ export const VideoPlayerSegment: FunctionComponent<VideoProps> = ({
   videoJsOptions,
   onVideoEnd,
   appxVideoId,
+  appxCourseId
 }) => {
   const playerRef = useRef<Player | null>(null);
 
@@ -52,7 +54,7 @@ export const VideoPlayerSegment: FunctionComponent<VideoProps> = ({
       if (mouseTimeDisplay) {
         const timeTooltip: any = mouseTimeDisplay.getChild('timeTooltip');
         if (timeTooltip) {
-          timeTooltip.update = function (
+          timeTooltip.update = function(
             seekBarRect: any,
             seekBarPoint: any,
             time: string,
@@ -96,7 +98,7 @@ export const VideoPlayerSegment: FunctionComponent<VideoProps> = ({
         <div
           id="thumbnail-preview"
           ref={thumbnailPreviewRef}
-          className="pointer-events-none absolute z-10 hidden h-[180px] w-[320px] bg-cover bg-no-repeat"
+          className="pointer-events-none absolute z-10 hidden h-full w-full bg-cover bg-no-repeat"
         />
         <VideoPlayer
           setQuality={setQuality}
@@ -104,6 +106,7 @@ export const VideoPlayerSegment: FunctionComponent<VideoProps> = ({
           subtitles={subtitles}
           options={videoJsOptions}
           appxVideoId={appxVideoId}
+          appxCourseId={appxCourseId}
           onVideoEnd={onVideoEnd}
           onReady={handlePlayerReady}
         />
